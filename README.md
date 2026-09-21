@@ -1,4 +1,4 @@
-# VisionPRO — Facial Recognition Command Center
+# VisionPRO — Facial Recognition System
 
 > A full-stack facial recognition application with a premium browser interface, FastAPI backend, MTCNN face detection, FaceNet-style embeddings using InceptionResnetV1/VGGFace2, cosine-similarity matching, duplicate-identity protection, SQLite persistence, live webcam recognition, and a database-backed Evaluation Lab.
 
@@ -6,7 +6,7 @@
 
 ## Overview
 
-VisionID is a web-based facial recognition system designed for interactive demonstrations, experimentation, and internship/project evaluation.
+VisionPRO is a web-based facial recognition system designed for interactive demonstrations, experimentation, and internship/project evaluation.
 
 The application combines a browser-based interface with a Python/FastAPI backend. Users can enroll identities using images or webcam captures, recognize faces from uploaded images or a live camera, manage enrolled identities, tune recognition thresholds, and evaluate the system against the currently stored dataset.
 
@@ -198,7 +198,7 @@ opencv-python-headless==4.10.0.84
 ## 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Facial_Recognition_System.git
+git clone https://github.com/Dilip2557/Facial_Recognition_System.git
 cd Facial_Recognition_System
 ```
 
@@ -358,10 +358,10 @@ The application supports environment variables for deployment behavior.
 
 | Variable | Purpose | Typical value |
 |---|---|---|
-| `VISIONID_EPHEMERAL` | Use temporary runtime storage | `1` or `0` |
-| `VISIONID_RESET_ON_STARTUP` | Reset runtime DB when the process starts | `1` or `0` |
-| `VISIONID_IDLE_RESET_MINUTES` | Reset an ephemeral runtime after inactivity | `120` |
-| `VISIONID_DATA_DIR` | Override the SQLite data directory | Custom path |
+| `VISIONPRO_EPHEMERAL` | Use temporary runtime storage | `1` or `0` |
+| `VISIONPRO_RESET_ON_STARTUP` | Reset runtime DB when the process starts | `1` or `0` |
+| `VISIONPRO_IDLE_RESET_MINUTES` | Reset an ephemeral runtime after inactivity | `120` |
+| `VISIONPRO_DATA_DIR` | Override the SQLite data directory | Custom path |
 
 ### Local persistent mode
 
@@ -376,9 +376,9 @@ backend/data/face_recognition.db
 For temporary demos:
 
 ```bash
-export VISIONID_EPHEMERAL=1
-export VISIONID_RESET_ON_STARTUP=1
-export VISIONID_IDLE_RESET_MINUTES=120
+export VISIONPRO_EPHEMERAL=1
+export VISIONPRO_RESET_ON_STARTUP=1
+export VISIONPRo_IDLE_RESET_MINUTES=120
 python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
 
@@ -419,7 +419,7 @@ GET /api/model-info
 ```text
 GET    /api/people
 POST   /api/people
-DELETE /api/people/{name}
+DELETE /api/people
 ```
 
 ## Recognition
