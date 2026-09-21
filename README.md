@@ -2,7 +2,7 @@
 
 A FastAPI + browser-webcam face-recognition system using MTCNN, InceptionResnetV1/VGGFace2, cosine similarity, configurable Unknown rejection, SQLite persistence, duplicate-identity protection, and a live Evaluation Lab.
 
-The URL you get inside the codespace =
+The URL you get inside the codespace = https://refactored-enigma-x56pgw7pvjvg266r-8000.app.github.dev/#/people
 
 ## Storage architecture
 
