@@ -1,0 +1,47 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Testing/cache
+.pytest_cache/
+.mypy_cache/
+.coverage
+
+# Environment/secrets
+.env
+.env.*
+!.env.example
+
+# Databases / biometric data
+*.db
+*.sqlite
+*.sqlite3
+backend/data/
+
+# Uploaded/generated face images
+uploads/
+faces/
+face_images/
+enrolled_faces/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model/cache files
+.cache/
+models/

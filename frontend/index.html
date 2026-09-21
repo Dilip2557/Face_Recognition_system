@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VisionID — Face Intelligence Studio</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>◈</text></svg>" />
+<link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient-grid"></div>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">◈</div>
+        <div>
+          <div class="brand-name">VISION<span>PRO</span></div>
+          <div class="brand-sub">FACE INTELLIGENCE STUDIO</div>
+        </div>
+      </div>
+
+      <div class="side-caption">COMMAND DECK</div>
+      <nav class="nav" id="nav" aria-label="Primary navigation">
+        <a href="#/dashboard" data-route="dashboard"><span class="ic">⌂</span><span>Dashboard</span><i></i></a>
+        <a href="#/recognize" data-route="recognize"><span class="ic">◉</span><span>Recognize</span><i></i></a>
+        <a href="#/enroll" data-route="enroll"><span class="ic">＋</span><span>Enroll Identity</span><i></i></a>
+        <a href="#/people" data-route="people"><span class="ic">◌</span><span>People Directory</span><i></i></a>
+        <a href="#/evaluation" data-route="evaluation"><span class="ic">∿</span><span>Evaluation Lab</span><i></i></a>
+        <a href="#/notes" data-route="notes"><span class="ic">◇</span><span>Model Notes</span><i></i></a>
+      </nav>
+
+      <div class="sys-card">
+        <div class="sys-head"><span class="sys-orb"></span><span>SYSTEM STATUS</span><span class="sys-pulse"></span></div>
+        <div class="sys-row"><span>Backend</span><b id="sys-backend" class="ok">…</b></div>
+        <div class="sys-row"><span>Database</span><b id="sys-db" class="ok">…</b></div>
+        <div class="sys-row"><span>Model</span><b id="sys-model" class="ok">…</b></div>
+      </div>
+
+      <div class="side-footer">LOCAL INFERENCE · AUTHORIZED USE</div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="crumb-wrap">
+          <span class="crumb-dot"></span>
+          <div class="crumb" id="crumb">/ command center</div>
+        </div>
+        <div class="top-actions">
+          <span class="pill pill-live" id="live-pill"><span class="live-dot"></span> AUTHORIZED USE</span>
+          <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">☀</button>
+        </div>
+      </header>
+
+      <main class="content" id="content"><!-- route renders here --></main>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="/assets/app.js"></script>
+</body>
+</html>
