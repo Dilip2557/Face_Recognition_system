@@ -1,120 +1,298 @@
-# VisionID — Face Recognition Command Center
+# VisionPRO — Facial Recognition Command Center
 
-A FastAPI + browser-webcam face-recognition system using MTCNN, InceptionResnetV1/VGGFace2, cosine similarity, configurable Unknown rejection, SQLite persistence, duplicate-identity protection, and a live Evaluation Lab.
+> A full-stack facial recognition application with a premium browser interface, FastAPI backend, MTCNN face detection, FaceNet-style embeddings using InceptionResnetV1/VGGFace2, cosine-similarity matching, duplicate-identity protection, SQLite persistence, live webcam recognition, and a database-backed Evaluation Lab.
 
-The URL you get inside the codespace = https://refactored-enigma-x56pgw7pvjvg266r-8000.app.github.dev/#/people
+---
 
-## Storage architecture
+## Overview
 
-This version intentionally removes JSON persistence and browser `localStorage` for application data.
+VisionID is a web-based facial recognition system designed for interactive demonstrations, experimentation, and internship/project evaluation.
 
-All persistent state is stored in one SQLite database:
+The application combines a browser-based interface with a Python/FastAPI backend. Users can enroll identities using images or webcam captures, recognize faces from uploaded images or a live camera, manage enrolled identities, tune recognition thresholds, and evaluate the system against the currently stored dataset.
 
-```text
-backend/
-└── data/
-    └── face_recognition.db
-```
-
-The database stores:
-
-- `people` — identities and metadata
-- `face_samples` — canonical JPEG bytes, SHA-256, perceptual hash, face embeddings, sample role, and expected label
-- `activity` — recognition events
-- `settings` — matching threshold and duplicate threshold
-- `evaluation_runs` — metric summaries for each run
-- `evaluation_results` — per-sample evaluation decisions
-- `demo_sources` — optional demo dataset source registry
-
-There are no `people.json`, `activity.json`, `settings.json`, `embeddings.json`, or `evaluation/dataset/` runtime stores.
-
-## Database path
-
-The connection is deliberately explicit in `backend/database.py`:
-
-```python
-DB_PATH = Path(__file__).resolve().parent / "data" / "face_recognition.db"
-```
-
-and every database operation uses `sqlite3.connect(DB_PATH)`.
-
-This means the application's persistence is server-side SQLite. When the application is hosted on a persistent server/volume, the database stays with the deployed application rather than in the browser.
-
-## Duplicate protection
-
-The enrollment pipeline rejects duplicates using three layers and checks the incoming face against **all previous face samples** in SQLite, not only the first photo:
-
-1. **Exact duplicate:** SHA-256 of the canonical JPEG is unique in SQLite.
-2. **Visual duplicate candidate:** a perceptual hash catches common re-encoded/resized copies.
-3. **Identity duplicate:** a face-embedding cosine similarity of `>= 0.80` blocks the same face from being registered under another name.
-
-A person can add new reference images under the same existing name. A new/different name is blocked when the incoming face matches an existing identity at or above the duplicate threshold. The same photo, including re-encoded copies, is also blocked.
-
-## Recognition
+### Core pipeline
 
 ```text
-Browser webcam / uploaded image
-          ↓
-      MTCNN detection
-          ↓
-     Face extraction
-          ↓
- InceptionResnetV1
-          ↓
-  512-D normalized vector
-          ↓
-   Cosine similarity
-          ↓
- threshold = 0.65
-          ↓
-     Known / Unknown
+Browser / Webcam / Image Upload
+              │
+              ▼
+        FastAPI Backend
+              │
+              ▼
+        MTCNN Detection
+              │
+              ▼
+       Face Extraction
+              │
+              ▼
+ InceptionResnetV1 (VGGFace2)
+              │
+              ▼
+      Normalized Embedding
+              │
+              ▼
+     Cosine Similarity
+              │
+              ▼
+       Known / Unknown
+              │
+              ▼
+          SQLite
 ```
 
-## Evaluation Lab
+---
 
-Evaluation does **not** read a local folder. Each run reads the current contents of `face_recognition.db`.
+## Features
 
-For known identities, the evaluator uses **leave-one-out matching** so an image is not scored against its own embedding. A person with only one reference image is marked `not_evaluable_single_reference` instead of being counted as an artificial perfect match.
+### Recognition
+- Upload an image and detect faces.
+- Use a browser webcam for live recognition.
+- Generate normalized face embeddings.
+- Match against enrolled identities using cosine similarity.
+- Reject low-confidence matches as **Unknown**.
 
-Unknown evaluation samples can also live directly in `face_samples` with `person_id=NULL` and `sample_role='unknown'`.
+### Identity Enrollment
+- Enroll a person from one or more images.
+- Capture enrollment images using the browser camera.
+- Validate that each submitted image contains an appropriate face.
+- Store reference images and embeddings in SQLite.
 
-Every evaluation run stores:
+### Duplicate Protection
+Enrollment uses multiple duplicate checks:
 
-- Accuracy
-- False accept rate (FAR)
-- False reject rate (FRR)
-- Detection failure rate
-- Per-identity accuracy
-- Per-sample decisions
+1. **Exact image duplicate** using SHA-256.
+2. **Visual duplicate candidate** using perceptual hashing.
+3. **Identity duplicate** using face-embedding similarity.
 
-The UI also renders a visual metric chart after each run.
+A new name is blocked when the incoming face is sufficiently similar to an already enrolled identity. New reference images can still be added to an existing person.
 
-## Optional demo dataset
+### People Directory
+- View enrolled identities.
+- View stored reference counts and metadata.
+- Delete identities and associated samples.
 
-The Evaluation Lab has a **Load 10 demo identities** button. The application downloads the configured public-source images at runtime, converts them to JPEG, computes embeddings, and stores the resulting image bytes/embeddings directly in SQLite. Nothing is written to an evaluation folder.
+### Evaluation Lab
+- Evaluate recognition using the current SQLite dataset.
+- Use leave-one-out matching for identities with multiple reference samples.
+- Avoid treating single-reference identities as artificially perfect test cases.
+- Calculate:
+  - Accuracy
+  - False Accept Rate (FAR)
+  - False Reject Rate (FRR)
+  - Detection Failure Rate
+  - Per-identity results
+  - Per-sample decisions
+- Persist evaluation runs and results in SQLite.
+- Render evaluation metrics in the interface.
 
-The source pages/attribution information are stored in the `demo_sources` table.
+### Demo Dataset
+- Optional demo-data loading from configured public sources.
+- Downloaded images are converted and stored in the runtime SQLite database.
+- Source URLs and attribution information are recorded in `demo_sources`.
 
-## Run on Windows
+### Persistence
+All application state is stored in SQLite rather than browser `localStorage` or JSON runtime stores.
 
-### Recommended
+The database can contain:
 
-Double-click:
+- People and identity metadata
+- Face samples
+- Image hashes
+- Face embeddings
+- Recognition activity
+- Matching settings
+- Evaluation runs
+- Evaluation results
+- Demo-source metadata
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | HTML, CSS, JavaScript |
+| Backend | FastAPI |
+| Server | Uvicorn |
+| Face Detection | MTCNN (`facenet-pytorch`) |
+| Face Embeddings | InceptionResnetV1 / VGGFace2 |
+| Similarity | Cosine similarity |
+| Image Processing | Pillow, OpenCV |
+| ML Runtime | PyTorch, TorchVision |
+| Database | SQLite |
+| Testing | Pytest |
+| Deployment | Docker / GitHub Codespaces |
+
+---
+
+## Project Structure
 
 ```text
-run_windows.bat
+Facial_Recognition_System-main/
+│
+├── backend/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI routes and application logic
+│   ├── face_engine.py       # Face detection, preprocessing, embeddings, matching
+│   ├── database.py          # SQLite persistence and schema initialization
+│   └── data/
+│       └── face_recognition.db   # Runtime database (created automatically)
+│
+├── frontend/
+│   ├── index.html            # Application UI
+│   ├── styles.css            # Premium responsive styling and animations
+│   └── app.js                # Frontend interaction and API integration
+│
+├── database/
+│   └── schema.sql            # Database schema reference
+│
+├── tests/
+│   ├── test_duplicate_logic.py
+│   ├── test_evaluation_persistence.py
+│   ├── test_evaluation_regression.py
+│   └── test_ephemeral_config.py
+│
+├── .devcontainer/
+│   └── devcontainer.json     # GitHub Codespaces configuration
+│
+├── .github/
+│   └── workflows/
+│       └── python-tests.yml  # Automated test workflow
+│
+├── Dockerfile
+├── requirements.txt
+├── GITHUB_DEPLOYMENT.md
+├── VERIFICATION.md
+├── run_windows.bat
+├── run_public_demo.bat
+├── .gitignore
+└── README.md
 ```
 
-Or run from Command Prompt:
+---
 
-```cmd
-cd C:\path\to\visionid-sqlite
-run_windows.bat
+## Requirements
+
+For the pinned dependency stack, use **Python 3.11**.
+
+The project requirements include:
+
+```text
+fastapi==0.115.0
+uvicorn==0.30.6
+torch==2.4.1+cpu
+torchvision==0.19.1+cpu
+facenet-pytorch==2.5.3
+numpy==1.26.4
+python-multipart==0.0.9
+pillow==10.4.0
+opencv-python-headless==4.10.0.84
 ```
 
-The script creates `.venv`, installs the pinned CPU build, initializes SQLite automatically, and starts FastAPI.
+> Python 3.14 is not recommended for this pinned PyTorch/FaceNet stack.
+
+---
+
+# Local Installation — Linux / Kali
+
+## 1. Clone the repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/Facial_Recognition_System.git
+cd Facial_Recognition_System
+```
+
+## 2. Create a Python 3.11 virtual environment
+
+If Python 3.11 is installed:
+
+```bash
+python3.11 -m venv .venv
+```
+
+Activate it:
+
+```bash
+source .venv/bin/activate
+```
+
+Verify:
+
+```bash
+python --version
+```
+
+Expected:
+
+```text
+Python 3.11.x
+```
+
+If your Linux distribution does not ship Python 3.11, use a Python version manager such as `uv` or use Docker.
+
+## 3. Install dependencies
+
+Using `pip`:
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Using `uv`:
+
+```bash
+uv pip install -r requirements.txt
+```
+
+## 4. Start the application
+
+Run from the **project root**:
+
+```bash
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+```
 
 Open:
+
+```text
+http://127.0.0.1:8000/
+```
+
+API documentation:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+### Important import rule
+
+Because the backend uses package-relative imports such as:
+
+```python
+from . import database
+```
+
+start Uvicorn from the project root using:
+
+```bash
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+```
+
+Do **not** start it from inside `backend/` with `main:app`.
+
+---
+
+# Windows
+
+From Command Prompt:
+
+```cmd
+cd C:\path\to\Facial_Recognition_System
+run_windows.bat
+```
+
+Then open:
 
 ```text
 http://127.0.0.1:8000/
@@ -126,139 +304,370 @@ Swagger/API documentation:
 http://127.0.0.1:8000/docs
 ```
 
-## Core UI
+---
 
-- **Dashboard** — current identity count, recognition activity, threshold
-- **Recognize** — image upload and live browser webcam recognition
-- **Enroll Identity** — image upload and webcam capture
-- **People Directory** — list and delete identities
-- **Evaluation Lab** — run database-backed evaluation and charts
-- **Model Notes** — explain the inference pipeline
+# Docker
 
-## Public demo mode (ephemeral storage)
+The included Dockerfile uses Python 3.11.
 
-For a public demo link where you do NOT want enrollment data to persist, run with:
+Build:
 
-```text
-VISIONID_EPHEMERAL=1
-VISIONID_RESET_ON_STARTUP=1
+```bash
+docker build -t visionid .
 ```
 
-In this mode SQLite is still used directly, but the database is placed in a temporary runtime directory and recreated when the process starts. A hosted restart therefore gives the next visitor a fresh demo. The public demo does not depend on browser localStorage.
+Run:
 
-For local development, `run_windows.bat` uses persistent SQLite under `backend/data/face_recognition.db`. For a hosted demo, use `run_public_demo.bat` or equivalent environment variables.
-
-By default, ephemeral mode also resets after 120 minutes without an interactive action. Recognition, enrollment, deletion, demo loading, threshold changes, and evaluation count as interactive actions; passive dashboard polling does not. Configure `VISIONID_IDLE_RESET_MINUTES` if needed.
-
-Do not commit a production `face_recognition.db` containing real biometric data to a public GitHub repository. The runtime DB is ignored by `.gitignore`.
-
-
-## Interview explanation
-
-### Why SQLite?
-
-The project has a small enrollment population and needs zero-cost, portable, transparent persistence. SQLite provides transactions, uniqueness constraints, foreign keys, and BLOB storage without a separate database server.
-
-### Why store images in SQLite?
-
-It removes a second data store. The current runtime dataset, face embeddings, activity, and evaluation records can all be managed through the same database path.
-
-### Why both image hashing and face similarity?
-
-An image hash detects duplicate files, while embedding similarity detects the more important case where the same face is re-uploaded or saved under a different filename/name.
-
-### Why 0.65?
-
-It is the initial configured Unknown-rejection threshold from the assignment design. The Evaluation Lab can be used to validate or tune it against an actual dataset.
-
-## Security / privacy
-
-Face embeddings and face images are biometric data. Keep production database files private, restrict access to the management UI/API, and add authentication/authorization before using the system beyond an internship demonstration.
-
-## Project files
-
-```text
-visionid-sqlite/
-├── backend/
-│   ├── __init__.py
-│   ├── database.py
-│   ├── face_engine.py
-│   ├── main.py
-│   └── data/
-│       └── face_recognition.db   # created automatically; ignored by Git
-├── frontend/
-│   ├── index.html
-│   ├── app.js
-│   └── styles.css
-├── requirements.txt
-├── run_windows.bat
-├── .gitignore
-└── README.md
+```bash
+docker run --rm -p 8000:8000 visionid
 ```
 
-There is intentionally no `launch.py`: FastAPI is started directly with Uvicorn.
-
-## Recommended public-demo behavior
-
-Use the included `Dockerfile` or equivalent hosted environment with:
+Open:
 
 ```text
-VISIONID_EPHEMERAL=1
-VISIONID_RESET_ON_STARTUP=1
-VISIONID_IDLE_RESET_MINUTES=120
+http://127.0.0.1:8000/
 ```
 
-This intentionally makes the hosted demo temporary. Data is still stored through SQLite and is available to the application during the live runtime, but a process restart recreates the database. If there is no interactive action for 120 minutes, the next request resets the runtime database as well.
+The Docker configuration defaults to ephemeral demo storage.
 
-This is appropriate for an internship demo where reviewers should be able to test enrollment and recognition without your personal enrollment data becoming permanent.
+---
 
-## Duplicate identity decision
+# GitHub Codespaces
 
-- Recognition acceptance threshold: **0.65**
-- Duplicate identity threshold: **0.80**
+This repository includes a `.devcontainer/devcontainer.json` configured for GitHub Codespaces.
 
-The duplicate threshold is checked against **every previously stored face sample**. A new name is rejected when the incoming face reaches the duplicate threshold for an already enrolled identity. The API returns a clear `409` response containing the existing identity and similarity score.
+### Steps
 
-The check also runs against images already accepted earlier in the same enrollment request, so two photos of the same person cannot be submitted together under different names.
+1. Push the repository to GitHub.
+2. Open the repository on GitHub.
+3. Select **Code → Codespaces → Create codespace on main**.
+4. Wait for the development container to finish installing dependencies.
+5. The application starts on port `8000`.
+6. Open the **Ports** panel and use the forwarded URL.
+7. For an externally accessible demo, set port `8000` visibility to **Public** where appropriate.
 
-## GitHub / Codespaces demo
+The Codespaces configuration runs the application in ephemeral mode so runtime enrollment data does not become a permanent repository artifact.
 
-This repository is safe to publish without runtime biometric data. The public-demo configuration uses an ephemeral SQLite database created at runtime. See `GITHUB_DEPLOYMENT.md` for Codespaces setup.
+See `GITHUB_DEPLOYMENT.md` for the repository-specific deployment notes.
+
+---
+
+# Configuration
+
+The application supports environment variables for deployment behavior.
+
+| Variable | Purpose | Typical value |
+|---|---|---|
+| `VISIONID_EPHEMERAL` | Use temporary runtime storage | `1` or `0` |
+| `VISIONID_RESET_ON_STARTUP` | Reset runtime DB when the process starts | `1` or `0` |
+| `VISIONID_IDLE_RESET_MINUTES` | Reset an ephemeral runtime after inactivity | `120` |
+| `VISIONID_DATA_DIR` | Override the SQLite data directory | Custom path |
+
+### Local persistent mode
+
+Default behavior stores the database under:
+
+```text
+backend/data/face_recognition.db
+```
+
+### Public demo mode
+
+For temporary demos:
+
+```bash
+export VISIONID_EPHEMERAL=1
+export VISIONID_RESET_ON_STARTUP=1
+export VISIONID_IDLE_RESET_MINUTES=120
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+```
+
+In ephemeral mode, the application uses a temporary runtime directory and recreates the database when configured to reset on startup. An idle timeout can also reset the runtime database.
+
+---
+
+# Recognition Settings
+
+The current default values are:
+
+| Setting | Default |
+|---|---:|
+| Recognition threshold | `0.65` |
+| Duplicate identity threshold | `0.80` |
+| Activity history limit | `500` events |
+| Default idle reset | `120` minutes in ephemeral mode |
+
+The recognition threshold controls Known/Unknown acceptance. The duplicate threshold is intentionally stricter and is used during enrollment to prevent the same identity from being registered under different names.
+
+Thresholds can be viewed and updated through the application settings interface and API.
+
+---
+
+# API Endpoints
+
+## Health and status
+
+```text
+GET /api/health
+GET /api/stats
+GET /api/activity
+GET /api/model-info
+```
+
+## People
+
+```text
+GET    /api/people
+POST   /api/people
+DELETE /api/people/{name}
+```
+
+## Recognition
+
+```text
+POST /api/recognize
+```
+
+## Threshold settings
+
+```text
+GET  /api/settings/threshold
+POST /api/settings/threshold
+```
+
+## Evaluation
+
+```text
+GET  /api/evaluation/status
+POST /api/evaluate
+GET  /api/evaluation/latest
+```
+
+## Demo dataset / runtime mode
+
+```text
+GET  /api/demo/status
+POST /api/demo/load
+GET  /api/demo/mode
+POST /api/demo/reset
+```
+
+Interactive API documentation is available at:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+---
+
+# How Recognition Works
+
+1. The browser supplies an image or webcam frame.
+2. The backend loads and preprocesses the image.
+3. MTCNN detects the face.
+4. The face is extracted and prepared for embedding generation.
+5. InceptionResnetV1 generates the face representation.
+6. The embedding is normalized.
+7. Cosine similarity is calculated against enrolled reference embeddings.
+8. The highest score is compared with the configured recognition threshold.
+9. The result is returned as a known identity or Unknown.
+10. Recognition activity can be stored in SQLite.
+
+---
+
+# Enrollment and Duplicate Detection
+
+For an enrollment request, each candidate image goes through validation and duplicate checks before it is stored.
+
+### Exact duplicate
+
+A canonicalized image receives a SHA-256 hash. Duplicate SHA-256 values are rejected.
+
+### Perceptual duplicate
+
+A perceptual hash is used to identify visually similar re-encoded or resized versions of the same image.
+
+### Identity duplicate
+
+The incoming face embedding is compared against stored face samples. A similarity score at or above the duplicate threshold (`0.80`) prevents the same face from being enrolled under another identity.
+
+The duplicate check considers previously stored face samples rather than relying only on the first image of a person.
+
+---
+
+# Evaluation Methodology
+
+The Evaluation Lab reads its dataset from the current SQLite database.
+
+For known identities with multiple reference samples, the evaluator uses **leave-one-out matching**, meaning the test sample is not matched against its own stored embedding.
+
+For identities with only one reference image, the system can mark the sample as not evaluable rather than turning a self-match into an artificial perfect score.
+
+Evaluation data can include unknown samples with no associated `person_id`.
+
+The evaluation subsystem records both summary metrics and individual decisions in SQLite.
+
+---
+
+# Testing
+
+Run the test suite with:
+
+```bash
+pytest -q
+```
+
+The repository includes regression and persistence tests covering duplicate logic, evaluation behavior, and ephemeral configuration.
+
+GitHub Actions is configured under:
+
+```text
+.github/workflows/python-tests.yml
+```
+
+---
+
+# Webcam Usage
+
+The application uses the browser's camera APIs.
+
+For local development, use:
+
+```text
+http://127.0.0.1:8000/
+```
+
+For a hosted deployment, use an **HTTPS** URL so that modern browsers can grant camera access.
+
+When prompted by the browser, allow camera access for the site.
+
+---
+
+# Privacy and Security
+
+Face images and face embeddings are biometric information and should be handled as sensitive data.
+
+### Before public or production use
+
+- Do not commit real face databases to GitHub.
+- Do not commit `.env` files containing secrets.
+- Do not expose an administrative enrollment interface without access control.
+- Add authentication and authorization before production deployment.
+- Restrict access to biometric records and stored embeddings.
+- Use HTTPS for remote access.
+- Establish a data-retention and deletion policy.
+- Obtain the appropriate user consent and comply with applicable privacy/data-protection requirements.
+
+The repository's `.gitignore` is intended to keep runtime databases, virtual environments, caches, and common sensitive artifacts out of source control.
+
+---
+
+# Limitations
+
+### Recognition accuracy
+
+Performance can vary with lighting, pose, expression, motion blur, image quality, occlusion, and camera conditions.
+
+### Fixed threshold
+
+The initial recognition threshold is configurable but is not guaranteed to be optimal across every environment.
+
+### No liveness detection
+
+The current system identifies faces but does not determine whether the presented face belongs to a live person or a photo/video presentation.
+
+### CPU inference
+
+CPU-based face detection and embedding generation can increase latency, especially during repeated webcam recognition or larger evaluation runs.
+
+### SQLite scalability
+
+SQLite is appropriate for small-scale demos and local applications, but a server-based database and vector-search system may be more appropriate for large deployments and concurrent users.
+
+### Evaluation dataset size
+
+Evaluation quality depends on the number and diversity of known and unknown samples available in the database.
+
+---
+
+# Future Improvements
+
+Potential next steps include:
+
+- GPU acceleration and optimized inference.
+- ONNX/TensorRT or equivalent model optimization.
+- Frame skipping and face tracking for smoother webcam recognition.
+- Improved face alignment and preprocessing.
+- Automated threshold calibration using a validation dataset.
+- Liveness / anti-spoofing detection.
+- Larger and more diverse evaluation datasets.
+- ROC/DET curves and richer evaluation reporting.
+- PostgreSQL or another server database for larger deployments.
+- FAISS or a vector database for large-scale embedding search.
+- Authentication, authorization, audit controls, and role-based access.
+
+---
+
+# Project Demonstration Flow
+
+A typical demonstration can follow this sequence:
+
+```text
+1. Open Dashboard
+       ↓
+2. Enroll Identity
+       ↓
+3. Capture / Upload Reference Images
+       ↓
+4. View Identity in People Directory
+       ↓
+5. Open Recognize
+       ↓
+6. Upload an image or start Webcam Recognition
+       ↓
+7. View Known / Unknown result and similarity
+       ↓
+8. Open Evaluation Lab
+       ↓
+9. Run Evaluation
+       ↓
+10. Review Accuracy / FAR / FRR / Detection Failure metrics
+```
+
+---
+
+# Development Notes
+
+### Run from the project root
+
+Use:
+
+```bash
+cd Facial_Recognition_System-main
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+```
+
+Avoid launching `main.py` directly from inside `backend/`, because the backend uses package-relative imports.
+
+### Runtime database
+
+The default database is created automatically. The schema is maintained in the Python backend and documented in:
+
+```text
+database/schema.sql
+```
 
 
-## Major Limitations and Future Improvements
-**1. Recognition accuracy can vary**
+# Author
 
-Recognition performance may decrease under poor lighting, different face angles, motion blur, low-resolution images, or partial occlusion.
+**Dilip**
 
-**Future improvement:** Improve face alignment and image preprocessing, use multiple reference images for each person, and evaluate the model under different lighting, angles, distances, and expressions.
+Facial Recognition System — VisionPRO
 
-**2. Fixed similarity threshold**
+---
 
-The system currently uses a fixed recognition threshold, which may not provide the same performance in every environment.
+## Acknowledgements
 
-**Future improvement:** Use a validation dataset to tune the threshold and analyze FAR (False Accept Rate) and FRR (False Reject Rate) at different threshold values.
+This project uses open-source libraries and pretrained models including FastAPI, PyTorch, TorchVision, facenet-pytorch, OpenCV, Pillow, SQLite, and related Python tooling.
 
-**3. No liveness detection**
-
-The current system recognizes a face but does not determine whether it belongs to a real person or is being presented through a photograph or video.
-
-**Future improvement:** Add an anti-spoofing or liveness-detection module using techniques such as blink detection, facial movement analysis, depth sensing, or a dedicated anti-spoofing model.
-
-**4. CPU-based inference can affect real-time performance**
-
-Face detection and embedding generation can be computationally expensive, especially during continuous webcam recognition.
-
-**Future improvement:** Use GPU acceleration, ONNX/TensorRT optimization, frame skipping, face tracking, and asynchronous inference to reduce latency and improve FPS.
-
-**5. SQLite is suitable mainly for small-scale deployments**
-
-SQLite is simple and efficient for a small number of identities but is not ideal for large-scale systems with many concurrent users and large amounts of biometric data.
-
-**Future improvement:** Migrate to PostgreSQL or another server-based database and use FAISS or a vector database for faster similarity searches with large numbers of embeddings.
-
-**6. Evaluation dataset is limited**
-
-The evaluation results depend on the size and diversity of the available test dataset.
-
-**Future improvement:** Build a larger evaluation dataset containing multiple identities, known and unknown faces, different lighting conditions, poses, expressions, distances, and occlusions, and use additional metrics such as confusion matrices, ROC curves, FAR, FRR, and inference latency.
+Please review and comply with the licenses and usage terms of all third-party dependencies and any public image sources used by the optional demo dataset.
